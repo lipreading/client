@@ -8,13 +8,18 @@ const mustache = require('mustache');
 const mustacheExpress = require('mustache-express');
 
 const buildPageMiddleware = require('./middlewares/build-page');
+const socketManager = require('./middlewares/socket');
 
 mustache.tags = ['{template:"', '"}'];
 const paths = [
     '/'
 ];
 
-const app = express()
+const app = express();
+const server = require('http').createServer(app);
+const io = require('socket.io')(server);
+
+app
     .use(bodyParser.json())
     .use(bodyParser.urlencoded({extended: true}))
     .get('/ping', (req, res) => {
@@ -35,8 +40,10 @@ app
         res.sendStatus(500);
     });
 
-const server = app.listen(PORT, () => {
+server.listen(PORT, () => {
     console.log(`Server listen ${PORT} port`);
 });
+
+socketManager(io);
 
 module.exports = server;
