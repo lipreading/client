@@ -1,16 +1,14 @@
 'use strict';
 
 const fs = require('fs');
+const analyseVideo = require('./analyseVideo');
 const tempPath = __dirname + '/../temp/';
 const PART = 524288;
 
 module.exports = (io) => {
     this._files = {};
-    this._queue = [];
 
     io.on('connection', client => {
-        console.log('Client connected...');
-
         client.on('start', data => {
             const name = data.name;
 
@@ -49,9 +47,8 @@ module.exports = (io) => {
 
             if (this._files[name].downloaded === this._files[name].fileSize) {
                 client.emit('finishUpload', {});
-                fs.write(this._files[name].handler, this._files[name].data, null, 'Binary', (err, written) => {
-
-                });
+                fs.write(this._files[name].handler, this._files[name].data, null, 'Binary', (err, written) => {});
+                analyseVideo(client, tempPath + name);
             } else if (this._files[name].data.length > 10485760) {
                 fs.write(this._files[name].handler, this._files[name].data, null, 'Binary', (err, written) => {
                     this._files[name].data = '';

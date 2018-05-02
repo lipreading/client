@@ -17,6 +17,7 @@ export default class MainContainer extends React.Component {
         this.state = {
             waitAreaStatus: '',
             isUploadAreaHidden: false,
+            subtitles: ''
         };
     }
 
@@ -33,6 +34,7 @@ export default class MainContainer extends React.Component {
                         <button type='button' id='upload-button' className='button'
                                 onClick={this._startUpload}>Загрузить</button>
                     </span>
+                    <h3>{this.state.subtitles}</h3>
                 </div>
                 <div id='wait-area' className={this.state.isUploadAreaHidden ? '' : 'hidden'}>
                     <Spinner size={70}/>
@@ -78,6 +80,30 @@ export default class MainContainer extends React.Component {
                 this.setState({
                     waitAreaStatus: `Видео полностью загружено, начинаем анализ`
                 });
+            });
+
+            this._socket.on('info', data => {
+                if (data.status === 'wait') {
+                    let text = '';
+                    if (data.position === 1) {
+                        text = `Ожидайте, вы следующий`;
+                    } else {
+                        text = `Ожидайте, вы ${data.position}-ый в очереди`;
+                    }
+                    this.setState({
+                        waitAreaStatus: text
+                    });
+                } else if (data.status === 'process') {
+                    this.setState({
+                        waitAreaStatus: `Ваше видео обрабатывается`
+                    });
+                } else if (data.status === 'ready') {
+                    this.setState({
+                        isUploadAreaHidden: false,
+                        subtitles: `Вашы субтитры: ${data.subtitles}`,
+                        waitAreaStatus: ''
+                    });
+                }
             });
         } else {
             alert('Сперва выберите файл');
