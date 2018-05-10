@@ -3,8 +3,7 @@
 const queue = [];
 let currentVideo = null;
 
-const loopCheckPosition = setInterval(checkPosition, 5000);
-const loopAnalyse = setInterval(analyse, 5000);
+const loopAnalyse = setInterval(analyse, 1000);
 
 module.exports = (client, videoPath) => {
     queue.push({
@@ -14,23 +13,38 @@ module.exports = (client, videoPath) => {
 };
 
 function checkPosition() {
-    queue.forEach((c, i) => {
-        if (currentVideo && currentVideo.videoPath === c.videoPath) {
-            c.client.emit('info', {
+    const check = (video, i) => {
+        if (currentVideo && currentVideo.videoPath === video.videoPath) {
+            video.client.emit('info', {
                 status: 'process'
             });
         } else {
-            c.client.emit('info', {
+            video.client.emit('info', {
                 status: 'wait',
                 position: i + 1
             });
         }
+    };
+
+    if (currentVideo && queue.length === 0) {
+        check(currentVideo, 0);
+        return;
+    }
+
+    queue.forEach((c, i) => {
+        check(c, i);
     });
 }
 
 function analyse() {
+    checkPosition();
     if (currentVideo && currentVideo.client.connected) {
         return;
+    }
+
+    if (currentVideo && !currentVideo.client.connected) {
+        currentVideo.reject();
+        currentVideo = null;
     }
 
     currentVideo = queue.shift();
@@ -39,12 +53,17 @@ function analyse() {
     }
 
     //TODO здесь запуск анализатора
-    new Promise(resolve => setTimeout(() => {
-        currentVideo.client.emit('info', {
-            status: 'ready',
-            subtitles: 'subtitles'
-        });
+    new Promise((resolve, reject) => {
+        currentVideo.reject = reject;
 
-        currentVideo = null;
-    }, 20000));
+        setTimeout(() => {
+            currentVideo.client.emit('info', {
+                status: 'ready',
+                subtitles: 'subtitles'
+            });
+
+            currentVideo = null;
+            resolve();
+        }, 30000);
+    });
 }
