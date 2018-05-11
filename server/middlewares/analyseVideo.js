@@ -59,11 +59,11 @@ function analyse() {
         setTimeout(() => {
             currentVideo.client.emit('info', {
                 status: 'ready',
-                subtitles: 'subtitles'
+                subtitles: 'Сегодня в завтрашний день не все могут смотреть'
             });
 
             currentVideo = null;
             resolve();
-        }, 30000);
+        }, 1000);
     });
 }

@@ -13,11 +13,15 @@ export default class MainContainer extends React.Component {
         this._socket.on('connect', data => {
 
         });
+        this._socket.on('disconnect', () => {
+            this._socket.connect();
+        });
 
         this.state = {
             waitAreaStatus: '',
             isUploadAreaHidden: false,
-            subtitles: ''
+            subtitles: '',
+            name: ''
         };
     }
 
@@ -29,6 +33,7 @@ export default class MainContainer extends React.Component {
         return (
             <div id='main-content'>
                 <div id='upload-area' className={this.state.isUploadAreaHidden ? 'hidden' : ''}>
+                    <h3>{this.state.name}</h3>
                     <span>
                         <input type='file' id='file-box' onChange={this._fileChosen}/><br/>
                         <button type='button' id='upload-button' className='button'
@@ -37,6 +42,7 @@ export default class MainContainer extends React.Component {
                     <h3>{this.state.subtitles}</h3>
                 </div>
                 <div id='wait-area' className={this.state.isUploadAreaHidden ? '' : 'hidden'}>
+                    <h3>{this.state.name}</h3>
                     <Spinner size={70}/>
                     <h3>{this.state.waitAreaStatus}</h3>
                 </div>
@@ -45,14 +51,14 @@ export default class MainContainer extends React.Component {
     }
 
     _startUpload() {
+        this._fileReader = new FileReader();
+
         if (this._file) {
             this.setState({
                 isUploadAreaHidden: true
             });
 
-            const fileReader = new FileReader();
-
-            fileReader.onload = event => {
+            this._fileReader.onload = event => {
                 this._socket.emit('upload', {
                     name: this._name,
                     data: event.target.result
@@ -64,6 +70,10 @@ export default class MainContainer extends React.Component {
                 size: this._file.size
             });
 
+            this.setState({
+                name: this._originName
+            });
+
             this._socket.on('moreData', data => {
                 const percent = data.percent;
                 this.setState({
@@ -73,7 +83,7 @@ export default class MainContainer extends React.Component {
                 const place = data.place * 524288;
                 const newFile = this._file.slice(place, place + Math.min(524288, (this._file.size - place)));
 
-                fileReader.readAsBinaryString(newFile);
+                this._fileReader.readAsBinaryString(newFile);
             });
 
             this._socket.on('finishUpload', data => {
@@ -103,6 +113,7 @@ export default class MainContainer extends React.Component {
                         subtitles: `Вашы субтитры: ${data.subtitles}`,
                         waitAreaStatus: ''
                     });
+                    this._file = null;
                 }
             });
         } else {
@@ -113,6 +124,7 @@ export default class MainContainer extends React.Component {
     _fileChosen(e) {
         this._file = e.target.files[0];
         const splitName = this._file.name.split('.');
+        this._originName = this._file.name;
         this._name = `file-name-${Math.random()}.${splitName[splitName.length - 1]}`;
     }
 }
